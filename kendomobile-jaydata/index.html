@@ -14,7 +14,8 @@
     <body>
         <div data-role="view" id="tabstrip-home" data-model="viewModel" data-title="Hello World!">
             <h1>Welcome!</h1>
-            <div id="database_result"></div>
+            <h4 data-bind="visible: dbOK">Database created. Test item inserted.</h4>
+            <h4 data-bind="visible: dbError">Error creating the databaase</h4>
             <h3>Cart database</h3>
             <ul id="listView"
                 data-role="listview"
@@ -25,49 +26,50 @@
         </div>
 
     	<script id="item-template" type="text/x-kendo-template">
-            <span data-bind="text:ProductName"></span> (<span data-bind="text:Amount"></span>) - 
-            <span>Tap to remove</span>
+            <span>${ProductName}</span> (${Amount}) - Tap to remove
     	</script>
         
         <script>
-            $data.define("Cart", {
-                ProductName: String,
-                Amount: Number
-            });
-            
-            viewModel = kendo.observable({
-               items: [],
-               displayCart: function() {
-                    $data("Cart").readAll().then(function(items) {
-                        viewModel.items.splice(0, viewModel.items.length);
-                        items.forEach(function(item) {
-                            viewModel.items.push(item.asKendoObservable());
-                        });
-                    });
-               },
-                addNewItem: function() {
-                     return ;
-                },
-                removeItem: function(e) {
-                    e.item.css("color","silver");
-                    e.dataItem.innerInstance().remove().then(function() {
-                       $data("Cart").readAll().then(viewModel.displayCart); 
-                    });
-                }
-            });
-            
-            var app = new kendo.mobile.Application(document.body, { transition: "slide" });
-            
-           
+    
+    viewModel = kendo.observable({
+       items: [],
+       dbOK: false,
+       dbError: false,
+       displayCart: function() {
             $data("Cart")
-            .save({ProductName: "White tea", Amount: Math.random().toString().substr(2,2) })
-            .then(function() {
-                $('#database_result').html('Database successfully created. Test item inserted');
-            })
-            .then(viewModel.displayCart)
-            .fail(function() {
-                $('#database_result').html('Error creating database or writing data');
-            });
-    </script>
+               .readAll()
+               .then(function(items) {
+                    viewModel.set("items", items.map(function(item) {
+                        return item.asKendoObservable();
+                    }));
+                });
+       },
+       removeItem: function(e) {
+            e.item.css("color","silver");
+            e.dataItem.remove().then(viewModel.displayCart);
+       }
+    });
+    
+    var app = new kendo.mobile.Application(document.body, { transition: "slide" });
+    
+   
+    $data.define("Cart", {
+        ProductName: String,
+        Amount: Number
+    });
+            
+    $data("Cart")
+        .save({
+            ProductName: "Product#" + Math.random().toString()[6], 
+            Amount: Math.random().toString()[5] 
+        })
+        .then(function() {
+            viewModel.set("dbOK", true);
+            viewModel.displayCart();
+        })
+        .fail(function() {
+            viewModel.set("dbError", true);
+        });
+        </script>
     </body>
 </html>
